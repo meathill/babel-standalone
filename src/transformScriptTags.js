@@ -54,7 +54,7 @@ function buildBabelOptions(script) {
       'transform-object-rest-spread',
       'transform-flow-strip-types',
     ],
-    sourceMaps: 'inline',
+    sourceMaps: script.sourceMaps || 'inline',
   }
 }
 
@@ -118,7 +118,7 @@ function getPluginsOrPresetsFromScript(script, attributeName) {
  * inline script, or by using XHR. Transforms are applied if needed. The scripts
  * are executed in the order they are found on the page.
  */
-function loadScripts(transformFn, scripts) {
+function loadScripts(transformFn, scripts, sourceMaps) {
   const result = [];
   const count = scripts.length;
 
@@ -131,6 +131,7 @@ function loadScripts(transformFn, scripts) {
       if (script.loaded && !script.executed) {
         script.executed = true;
         run(transformFn, script);
+        script.done && script.done();
       } else if (!script.loaded && !script.error && !script.async) {
         break;
       }
@@ -145,6 +146,7 @@ function loadScripts(transformFn, scripts) {
       executed: false,
       plugins: getPluginsOrPresetsFromScript(script, 'data-plugins'),
       presets: getPluginsOrPresetsFromScript(script, 'data-presets'),
+      sourceMaps: sourceMaps,
     };
 
     if (script.src) {
@@ -178,13 +180,15 @@ function loadScripts(transformFn, scripts) {
   });
 
   check();
+
+  return result;
 }
 
 /**
  * Run script tags with type="text/jsx".
  * @param {Array} scriptTags specify script tags to run, run all in the <head> if not given
  */
-export function runScripts(transformFn, scripts) {
+export function runScripts(transformFn, scripts, sourceMaps) {
   headEl = document.getElementsByTagName('head')[0];
   if (!scripts) {
     scripts = document.getElementsByTagName('script');
@@ -210,5 +214,5 @@ export function runScripts(transformFn, scripts) {
     'your scripts for production - https://babeljs.io/docs/setup/'
   );
 
-  loadScripts(transformFn, jsxScripts);
+  return loadScripts(transformFn, jsxScripts, sourceMaps);
 }
